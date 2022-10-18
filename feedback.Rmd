@@ -1,0 +1,131 @@
+---
+title: "Feedback data project"
+author: "Dean Nasa 209381367"
+date: "29 9 2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+The data contains measurement results of an electrical potential measured by an electromyograph (EMG) device, in the biceps muscles. The subjects in the control group did not receive encouragement before measuring their electrical potential, while those in the treatment groups received positive reinforcement ("you are looking great") or negative ("you are not trying hard"). I am interested to find if there is an effect of positive or negative reinforcement on the electrical potential measured in the biceps muscle.
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# loading data
+feed <- read.csv('d:/Users/shalhevet/Downloads/feedback_df_bi.csv', h = T)
+#install.packages('lmerTest')
+library(lmerTest)
+```
+it looks like Linear Mixed Model is the most suitable model for both fixed and random effects where samples are clustered into groups of dependent observations. The specific model Im using here is a Random-Intercept Linear regression.
+```{r}
+
+model_a <- lmer(performance ~(1|id) + gender, data = feed)
+summary(model_a)
+
+#P-value for gender is 0.793, There is no evidence for effect of gender on perfromance
+
+
+# from the above:
+# Beta_0 for intercept = 93.185
+# Beta for gender = -1.064
+# sigma_a = 9.197
+# sigma_eps = 11.458
+
+# confidence interval
+confint(model_a)
+```
+now same as above but with feedback who has three levels instead of two.
+
+```{r}
+
+model_b <- lmer(performance ~(1|id) + feedback, data = feed)
+summary(model_b)
+
+#P-value for no feedback and positive is statistically significant (lower then 0.05)
+
+
+# from the above:
+# Beta_0 for intercept (negative) = 95.7091
+# Beta for no feedback = -6.2064
+# Beta for positive = -6.1532
+# sigma_a = 8.995
+# sigma_eps = 11.085
+
+# confidence interval
+confint(model_b)
+```
+
+here I mixed both to try get more info
+
+```{r}
+model_c <- lmer(performance ~(1|id) + feedback + gender, data = feed)
+summary(model_c)
+
+
+# I dont see anything new with the p-v, no new information
+
+
+# from the above:
+# Beta_0 for intercept (negative) = 97.3048     
+# Beta for no feedback = -6.2064
+# Beta for positive = -6.1532
+# Beta for gender =-1.0638
+# sigma_a = 9.21   
+# sigma_eps = 11.08
+
+# confidence interval
+confint(model_c)
+
+```
+
+lets try add some interaction
+```{r}
+
+model_d <- lmer(performance ~(1|id) + feedback*gender, data = feed)
+summary(model_d)
+
+#II
+
+# The effect of gender is statistically non-significant and negative (p = 0.131)
+
+# The effect of no feedback compared to a negative feedback is statistically significant and negative (pv < .001)
+
+# The effect of positive feedback compared to a negative feedback is statistically significant and negative (pv < .001)
+
+# The interaction effect of no feedback on gender is statistically significant and positive (pv < .001)
+
+# The interaction effect of positive feedback on gender is statistically significant and positive (pv < .001)
+
+
+
+# no feedback (Main, Fixed)= -17.192
+# positive feedback (Main, Fixed) =-18.638 
+# Gender(Main, Fixed)= -6.280
+# Gender X no feedback (Interaction, Fixed)= 7.324
+# Gender X positive feedback (Interaction, Fixed)= 8.323
+# Sigma_a (Id, Random) =9.215   
+# Sigma_eps (Random)= 10.938  
+
+
+# confidence interval
+confint(model_d)
+
+# interaction plot
+interaction.plot(x.factor = feed$feedback, #x-axis variable
+                 trace.factor = feed$gender, #variable for lines
+                 response = feed$performance, #y-axis variable
+                 fun = median, #metric to plot
+                 ylab = "performance",
+                 xlab = "feedback",
+                 col = c("pink", "blue"),
+                 lty = 1, #line type
+                 lwd = 2, #line width
+                 trace.label = "Gender")
+```
+
+The full model adapted in the end is the chosen model.
+
+Although the gender is not significant, the interaction between gender and feedback is significant, as can also be seen from the interaction graph.
+
+This model explains the most of the variance (the percentage of explained variance increases as my model grew)
